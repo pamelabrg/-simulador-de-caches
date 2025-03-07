@@ -6,6 +6,7 @@ import math
 class MemoriaCache:
 
     def __init__(self):
+
         parametros = self.verificar_parametros()
         self.nsets, self.bsize, self.assoc, self.substituicao, self.flag_saida, self.arquivo_entrada = parametros
 
@@ -18,6 +19,12 @@ class MemoriaCache:
         self.n_bits_offset = int(math.log2(self.bsize))
         self.n_bits_index = int(math.log2(self.nsets))
         self.n_bits_tag = 32 - self.n_bits_offset - self.n_bits_index
+
+        self.total_accesses = 0
+        self.hits = 0
+        self.compulsory_misses = 0
+        self.capacity_misses = 0
+        self.conflict_misses = 0
 
 
     def is_power_of_two(self, x):
@@ -42,8 +49,8 @@ class MemoriaCache:
                 raise ValueError("assoc deve ser uma potência de 2.")
 
             substituicao = sys.argv[4]
-            if not substituicao in ("r", "f", "l"):
-                raise ValueError("substituicao deve ser 'r', 'f' ou 'l'.")
+            if not substituicao in ("R", "F", "L"):
+                raise ValueError("substituicao deve ser 'R', 'F' ou 'L'.")
 
             flag_saida = int(sys.argv[5])
             if flag_saida not in (0, 1):
@@ -83,3 +90,93 @@ class MemoriaCache:
                 dados = bloco["data"]
                 print(f"  Bloco {j}: [Validade: {validade}, Tag: {tag}, Dados: {dados}]")
             print("-" * 40)
+    
+    def acessar_cache_mapeamento_direto(self, endereco):
+        index = (endereco >> self.n_bits_offset) & (2**self.n_bits_index - 1)
+        tag = endereco >> (self.n_bits_offset + self.n_bits_index)
+
+        bloco = self.cache[index]
+        if bloco["validade"]:
+            if bloco["tag"] == tag:
+                print(f"Hit! Endereço {endereco} encontrado no bloco {bloco}.")
+                #hit
+                self.hits += 1
+                return
+            else:
+                print(f"Miss! Endereço {endereco} não encontrado no bloco {bloco}.")
+                #miss
+                self.conflict_misses += 1
+                bloco["validade"] = 1
+                bloco["tag"] = tag
+                return
+        else:
+            print(f"Miss! Endereço {endereco} não encontrado no bloco {bloco}.")
+            #miss
+            self.compulsory_misses += 1
+            bloco["validade"] = 1
+            bloco["tag"] = tag
+            return
+        
+    def acessar_cache_associativa(self, endereco):
+        index = (endereco >> self.n_bits_offset) & (2**self.n_bits_index - 1)
+        tag = endereco >> (self.n_bits_offset + self.n_bits_index)
+
+        conjunto = self.cache[index]
+        for bloco in conjunto:
+            if bloco["validade"] and bloco["tag"] == tag:
+                print(f"Hit! Endereço {endereco} encontrado no bloco {bloco}.")
+                #hit
+                self.hits += 1
+                return
+                
+        #miss, agora descobrir qual tipo de miss:
+        for bloco in conjunto:
+            if bloco["validade"] == 0:
+                print(f"Miss compulsorio Endereço {endereco} não encontrado no bloco {bloco}.")
+                #miss
+                self.compulsory_misses += 1
+                bloco["validade"] = 1
+                bloco["tag"] = tag
+                return
+        
+        #sem espaço livre, verifica conflito ou capacidade
+        for bloco in conjunto:
+            if bloco["tag"] != tag and bloco["validade"]:
+                print(f"Miss de Conflito! Substituindo bloco com tag {bloco['tag']} por {tag}.")
+                #miss
+                self.conflict_misses += 1
+                bloco["tag"] = tag
+                #talvez limpar o bloco?
+                return
+            
+        print(f"Miss capacidade susbtituir bloco em conjunto {index}.")
+        #miss
+        self.capacity_misses += 1
+        #implementar politica de substituição
+
+    def acessar_cache_totalmente_associativa(self, endereco):
+        tag = endereco >> (self.n_bits_offset + self.n_bits_index)
+
+        for bloco in self.cache:
+            if bloco["validade"] and bloco["tag"] == tag:
+                print(f"Hit! Endereço {endereco} encontrado no bloco {bloco}.")
+                #hit
+                self.hits += 1
+                return
+        print(f"Miss! Endereço {endereco} não encontrado no bloco {bloco}.")
+        #miss, verificar tipo
+
+        for bloco in self.cache:
+            if bloco["validade"] == 0:
+                print(f"Miss compulsorio Endereço {endereco} não encontrado no bloco {bloco}.")
+                #miss
+                self.compulsory_misses += 1
+                bloco["validade"] = 1
+                bloco["tag"] = tag
+                return
+        
+        #sem espaço livre, só ppode ser capacidade
+        print(f"Miss capacidade susbtituir bloco.")
+        #miss
+        self.capacity_misses += 1
+        #implementar politica de substituição
