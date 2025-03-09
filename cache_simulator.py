@@ -18,5 +18,5 @@ with open(cache.arquivo_entrada, "rb") as f:
             cache_map = cache.acessar_cache_totalmente_associativa(endereco)
         else:
             cache_map = cache.acessar_cache_associativa(endereco)
-
-        input("Pressione Enter para continuar...")  # Aguarda a entrada do usuário
+        print("\n\n\n")
+        input("Pressione Enter para continuar...") 
