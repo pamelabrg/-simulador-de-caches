@@ -165,10 +165,18 @@ class MemoriaCache:
         tag = endereco >> (self.n_bits_offset + self.n_bits_index)
 
         conjunto = self.cache[index]
+        print(f"Endereço: {endereco}, Tag: {tag}, Índice: {index}")
+        print("----------------------------------------------------------------------")
+
+        print(f"Conjunto {index+1}:")
+        for bloco in conjunto:
+            print(f"Bloco: {bloco}")
 
         for bloco in conjunto:
             if bloco["validade"] and bloco["tag"] == tag:
                 print(f"Hit! Endereço {endereco} encontrado no bloco {bloco}.")
+                print(f"Conjunto {index+1}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
+                print("----------------------------------------------------------------------")
 
                 #hit
                 self.hits += 1
@@ -178,30 +186,48 @@ class MemoriaCache:
         #miss, agora descobrir qual tipo de miss:
         for bloco in conjunto:
             if bloco["validade"] == 0:
-                print(f"Miss compulsorio Endereço {endereco} não encontrado no bloco {bloco}.")
+                print(f"Miss compulsorio")
+                print("ANTES:")
+                print(f"Conjunto {index+1}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
+                print("----------------------------------------------------------------------")
                 #miss
+                self.preencher_bloco(bloco, endereco)
                 self.compulsory_misses += 1
                 bloco["validade"] = 1
                 bloco["tag"] = tag
                 bloco["tempo_uso"] = self.clock
+                print("DEPOIS:")
+                print(f"Conjunto {index+1}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
+                print("----------------------------------------------------------------------")
                 return
         
         cache_cheia = all(bloco["validade"] for conjunto in self.cache for bloco in conjunto)
         #sem espaço livre, verifica conflito ou capacidade
         if not cache_cheia:
-            print(f"Miss de Conflito! Substituindo bloco com tag {bloco['tag']} por {tag}.")
+            print(f"Miss de Conflito!")
+            print("ANTES:")
+            print(f"Conjunto {index+1}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
+            print("----------------------------------------------------------------------")
             #miss
             self.conflict_misses += 1
-            #talvez limpar o bloco?
-            return
+
         else:
-            print(f"Miss capacidade susbtituir bloco em conjunto {index}.")
+            print(f"Miss capacidade")
+            print("ANTES:")
+            print(f"Conjunto {index+1}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
+            print("----------------------------------------------------------------------")
             #miss
             self.capacity_misses += 1
-
+            
+            
+            
         bloco_substituido = self.substituir_bloco(conjunto)
+        self.preencher_bloco(bloco_substituido, endereco)
         print(f"Substituindo bloco {bloco_substituido} usando política {self.substituicao}.")
-        
+        print("DEPOIS:")
+        print(f"Conjunto {index+1}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
+        print("----------------------------------------------------------------------")
+
         bloco_substituido["validade"] = 1
         bloco_substituido["tag"] = tag
         bloco_substituido["tempo_uso"] = self.clock 

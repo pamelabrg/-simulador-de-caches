@@ -20,3 +20,10 @@ with open(cache.arquivo_entrada, "rb") as f:
             cache_map = cache.acessar_cache_associativa(endereco)
         print("\n\n\n")
         input("Pressione Enter para continuar...") 
+    
+    print(f"Total de acessos: {cache.total_accesses}")
+    print(f"Total de hits: {cache.hits}")
+    print(f"Total de misses compulsorios: {cache.compulsory_misses}")
+    print(f"Total de misses de capacidade: {cache.capacity_misses}")
+    print(f"Total de misses de conflito: {cache.conflict_misses}")
+
