@@ -12,7 +12,7 @@ class MemoriaCache:
         self.nsets, self.bsize, self.assoc, self.substituicao, self.flag_saida, self.arquivo_entrada = parametros
 
         size_cache = self.nsets * self.bsize * self.assoc
-        self.cache = self.inicializar_cache(size_cache)
+        self.cache = self.inicializar_cache()
 
         #for i in range(0, size_cache):
         #    print(f"cache[{i}] = {cache[i]}")
@@ -78,30 +78,42 @@ class MemoriaCache:
             print(e)
             sys.exit(1)
 
-    def inicializar_cache(self, size_cache):
-        cache = []  
-        for _ in range(self.nsets):
-            if self.assoc == 1:  # Se for mapeamento direto, um único bloco por índice
+    def inicializar_cache(self, ):
+        cache = []
+
+        if self.assoc == 1:  # para mapeamento direto
+            for _ in range(self.nsets):
                 bloco = {
                     "validade": 0,
                     "tag": 0,
-                    "data": [0] * self.bsize,  
-                    "tempo_insercao": 0,  # Para FIFO (não usado no mapeamento direto)
-                    "temmpo_uso": 0  # Para LRU (não usado no mapeamento direto)
+                    "data": [0] * self.bsize
                 }
-                cache.append(bloco)  # Apenas um bloco por índice
-            else:  # Para caches associativas (n-way e totalmente associativa)
+                cache.append(bloco)  # um bloco a cada set
+
+        elif self.nsets == 1:  # totalmente associativa
+            for _ in range(self.assoc):
+                bloco = {
+                    "validade": 0,
+                    "tag": 0,
+                    "data": [0] * self.bsize,
+                    "tempo_insercao": 0,  # para FIFO
+                    "tempo_uso": 0        # para LRU
+                }
+                cache.append(bloco)  # todos os blocos em uma lista
+        else:  # associativa por conjunto
+            for _ in range(self.nsets):
                 conjunto = []
                 for _ in range(self.assoc):
                     bloco = {
                         "validade": 0,
                         "tag": 0,
-                        "data": [0] * self.bsize,  
-                        "tempo_insercao": 0,  
-                        "temmpo_uso": 0  
+                        "data": [0] * self.bsize,
+                        "tempo_insercao": 0,  # para FIFO
+                        "tempo_uso": 0        # para LRU
                     }
                     conjunto.append(bloco)
-                cache.append(conjunto)
+                cache.append(conjunto)  # lista de sets(conjuntos) com os blocos
+
         return cache
 
     def imprimir_cache(self):
@@ -216,9 +228,8 @@ class MemoriaCache:
                 
                 return
         
-        cache_cheia = all(bloco["validade"] for conjunto in self.cache for bloco in conjunto)
         #sem espaço livre, verifica conflito ou capacidade
-        if not cache_cheia:
+        if all(bloco["validade"] for bloco in conjunto):
             print(f"Miss de Conflito!")
             self.conflict_misses += 1
 
@@ -226,30 +237,31 @@ class MemoriaCache:
             print(f"Miss capacidade")
             #miss
             self.capacity_misses += 1
-            
+        '''    
         print("Conflito com:")
         print(f"Conjunto {index}:  [Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}]")
         print("----------------------------------------------------------------------")
-            
+           '''
         bloco_substituido = self.substituir_bloco(conjunto)
-        print("BLOCO a ser substituido:")
+        '''print("BLOCO a ser substituido:")
         print(f"Conjunto {index}:  [Validade: {bloco_substituido['validade']}, Tag: {bloco_substituido['tag']}, Dados: {bloco_substituido['data']}]")
-        print("----------------------------------------------------------------------")
+        print("----------------------------------------------------------------------")'''
 
         self.preencher_bloco(bloco_substituido, endereco)
-        print(f"Substituindo bloco {bloco_substituido} usando política {self.substituicao}.")
+        #print(f"Substituindo bloco {bloco_substituido} usando política {self.substituicao}.")
         
         bloco_substituido["validade"] = 1
         bloco_substituido["tag"] = tag
-        bloco["tempo_uso"] = self.tempo_global
-        bloco["tempo_insercao"] = self.tempo_global    
+        bloco_substituido["tempo_uso"] = self.tempo_global
+        bloco_substituido["tempo_insercao"] = self.tempo_global    
 
-        print("BLOCO substituido:")
+        '''print("BLOCO substituido:")
         print(f"Conjunto {index}:  [Validade: {bloco_substituido['validade']}, Tag: {bloco_substituido['tag']}, Dados: {bloco_substituido['data']}]")
         print("----------------------------------------------------------------------")
+        
         for bloco in conjunto:
             print(f"Validade: {bloco['validade']}, Tag: {bloco['tag']}, Dados: {bloco['data']}")
-                
+           '''     
         return
 
     def acessar_cache_totalmente_associativa(self, endereco):
@@ -299,8 +311,8 @@ class MemoriaCache:
         self.capacity_misses += 1
         bloco_substituido["validade"] = 1
         bloco_substituido["tag"] = tag
-        bloco["tempo_insercao"] = self.tempo_global
-        bloco["tempo_uso"] = self.tempo_global
+        bloco_substituido["tempo_insercao"] = self.tempo_global
+        bloco_substituido["tempo_uso"] = self.tempo_global
         self.preencher_bloco(bloco_substituido, endereco)
 
         if self.substituicao == "F":
@@ -331,5 +343,3 @@ class MemoriaCache:
             bloco["data"][i] = first + i
             print(f"Dados: {bloco['data']}")
         return
-
-       
